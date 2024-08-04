@@ -9,6 +9,11 @@ __pycache__/
 #Idea files
 .idea/
 
+#Data files
+/data/**/*.csv
+/data/**/*.jpg
+/data/**/*/*.jpg
+
 
 # Distribution / packaging
 .Python
