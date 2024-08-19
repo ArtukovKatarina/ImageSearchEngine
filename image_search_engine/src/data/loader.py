@@ -3,7 +3,7 @@ import cv2
 import albumentations as A
 from image_search_engine.src import config as CFG
 
-class CLIPDataset(torch.utils.data.Dataset):
+class CLIPLoader(torch.utils.data.Dataset):
     def __init__(self, image_filenames, captions, tokenizer, transforms):
         """
         image_filenames and cpations must have the same length; so, if there are

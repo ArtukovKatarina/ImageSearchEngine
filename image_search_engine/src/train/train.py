@@ -6,10 +6,10 @@ from tqdm.autonotebook import tqdm
 from transformers import DistilBertTokenizer
 from image_search_engine.src import config as CFG
 from image_search_engine.src.data import loader
-from image_search_engine.src.data.loader import CLIPDataset
+from image_search_engine.src.data.loader import CLIPLoader
 from image_search_engine.src.utils import avg_meter
 from image_search_engine.src.utils.avg_meter import AvgMeter
-from image_search_engine.src.model.CLIP_model import CLIPModel
+from image_search_engine.src.model.clip import Clip
 
 def make_train_valid_dfs():
     dataframe = pd.read_csv(CFG.PROCESSED_PATH / "captions.csv")
@@ -27,7 +27,7 @@ def make_train_valid_dfs():
 
 def build_loaders(dataframe, tokenizer, mode):
     transforms = loader.get_transforms(mode=mode)
-    dataset = CLIPDataset(
+    dataset = CLIPLoader(
         dataframe["image"].values,
         dataframe["caption"].values,
         tokenizer=tokenizer,
@@ -82,7 +82,7 @@ def main():
     valid_loader = build_loaders(valid_df, tokenizer, mode="valid")
 
 
-    model = CLIPModel().to(CFG.DEVICE)
+    model = Clip().to(CFG.DEVICE)
     params = [
         {"params": model.image_encoder.parameters(), "lr": CFG.IMAGE_ENCODER_LR},
         {"params": model.text_encoder.parameters(), "lr": CFG.TEXT_ENCODER_LR},
