@@ -1,7 +1,9 @@
 import pandas as pd
 import numpy as np
 import itertools
+import logging
 import torch
+import matplotlib.pyplot as plt
 from tqdm.autonotebook import tqdm
 from transformers import DistilBertTokenizer
 from image_search_engine.src import config as CFG
@@ -10,6 +12,9 @@ from image_search_engine.src.data.loader import CLIPLoader
 from image_search_engine.src.utils import avg_meter
 from image_search_engine.src.utils.avg_meter import AvgMeter
 from image_search_engine.src.model.clip import Clip
+
+
+logger = logging.getLogger(__name__)
 
 def make_train_valid_dfs():
     dataframe = pd.read_csv(CFG.PROCESSED_PATH / "captions.csv")
@@ -62,7 +67,6 @@ def train_epoch(model, train_loader, optimizer, lr_scheduler, step):
 
 def valid_epoch(model, valid_loader):
     loss_meter = AvgMeter()
-
     tqdm_object = tqdm(valid_loader, total=len(valid_loader))
     for batch in tqdm_object:
         batch = {k: v.to(CFG.DEVICE) for k, v in batch.items() if k != "caption"}
@@ -74,13 +78,18 @@ def valid_epoch(model, valid_loader):
         tqdm_object.set_postfix(valid_loss=loss_meter.avg)
     return loss_meter
 
+def plot_graphs(history, metric):
+    plt.plot(history[metric])
+    plt.plot(history['val_' + metric], '')
+    plt.xlabel("Epochs")
+    plt.ylabel(metric)
+    plt.legend([metric, 'val_' + metric])
 
 def main():
     train_df, valid_df = make_train_valid_dfs()
     tokenizer = DistilBertTokenizer.from_pretrained(CFG.TEXT_TOKENIZER)
     train_loader = build_loaders(train_df, tokenizer, mode="train")
     valid_loader = build_loaders(valid_df, tokenizer, mode="valid")
-
 
     model = Clip().to(CFG.DEVICE)
     params = [
@@ -97,20 +106,32 @@ def main():
     step = "epoch"
 
     best_loss = float('inf')
+    history = {'loss': [], 'val_loss': [], 'acc': [], 'val_acc': []}
     for epoch in range(CFG.EPOCHS):
-        print(f"Epoch: {epoch + 1}")
+        logger.info("Epoch: %i", epoch +1)
         model.train()
         train_loss = train_epoch(model, train_loader, optimizer, lr_scheduler, step)
         model.eval()
         with torch.no_grad():
             valid_loss = valid_epoch(model, valid_loader)
         
+        history['loss'].append(train_loss.avg)
+        history['val_loss'].append(valid_loss.avg)
+        
         if valid_loss.avg < best_loss:
             best_loss = valid_loss.avg
-            torch.save(model.state_dict(), "best.pt")
-            print("Saved Best Model!")
+            logger.info("Saving model...")
+            torch.save(model.state_dict(), CFG.MODELS_PATH + "/clip_model.pt")
+            logger.info("Saved Clip Model!")
         
         lr_scheduler.step(valid_loss.avg)
+        
+    logger.info("Train loss: %f", train_loss.avg)
+    logger.info("Valid loss: %f", valid_loss.avg)
+
+    # Plotting loss graphs
+    plot_graphs(history, 'loss')
+    plt.show()
         
 if __name__ == "__main__":
     main()

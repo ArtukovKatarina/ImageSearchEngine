@@ -1,5 +1,8 @@
 import pandas as pd
 from image_search_engine.src import config
+import logging
+
+logger = logging.getLogger(__name__)
 
 def processing_dataset(dataset_file: str) -> pd.DataFrame:
     df = pd.read_csv(config.RAW_PATH / dataset_file, delimiter="|")
@@ -13,9 +16,9 @@ def processing_dataset(dataset_file: str) -> pd.DataFrame:
     return df
 
 def save_processed_data(data: pd.DataFrame) -> None:
-    print("Saving data...")
+    logger.info("Saving data...")
     data.to_csv(config.PROCESSED_PATH / "captions.csv", index=False)
-    print("Data saved as csv.")
+    logger.info("Data saved as csv.")
     
 if __name__ == "__main__":
     dataset = processing_dataset("results.csv")
