@@ -1,11 +1,11 @@
 import pandas as pd
-from image_search_engine.src import config
+from src import paths
 import logging
 
 logger = logging.getLogger(__name__)
 
 def processing_dataset(dataset_file: str) -> pd.DataFrame:
-    df = pd.read_csv(config.RAW_PATH / dataset_file, delimiter="|")
+    df = pd.read_csv(paths.RAW_PATH / dataset_file, delimiter="|")
     df.columns = ['image', 'caption_number', 'caption']
     df['caption'] = df['caption'].str.lstrip()
     df['caption_number'] = df['caption_number'].str.lstrip()
@@ -17,7 +17,7 @@ def processing_dataset(dataset_file: str) -> pd.DataFrame:
 
 def save_processed_data(data: pd.DataFrame) -> None:
     logger.info("Saving data...")
-    data.to_csv(config.PROCESSED_PATH / "captions.csv", index=False)
+    data.to_csv(paths.PROCESSED_PATH / "captions.csv", index=False)
     logger.info("Data saved as csv.")
     
 if __name__ == "__main__":

@@ -6,19 +6,20 @@ import torch
 import matplotlib.pyplot as plt
 from tqdm.autonotebook import tqdm
 from transformers import DistilBertTokenizer
-from image_search_engine.src import config as CFG
-from image_search_engine.src.data import loader
-from image_search_engine.src.data.loader import CLIPLoader
-from image_search_engine.src.utils import avg_meter
-from image_search_engine.src.utils.avg_meter import AvgMeter
-from image_search_engine.src.model.clip import Clip
+from config import settings
+from src import paths
+from src.data import loader
+from src.data.loader import CLIPLoader
+from src.utils import avg_meter
+from src.utils.avg_meter import AvgMeter
+from src.model.clip import Clip
 
 
 logger = logging.getLogger(__name__)
 
 def make_train_valid_dfs():
-    dataframe = pd.read_csv(CFG.PROCESSED_PATH / "captions.csv")
-    max_id = dataframe["id"].max() + 1 if not CFG.DEBUG else 100
+    dataframe = pd.read_csv(paths.PROCESSED_PATH / "captions.csv")
+    max_id = dataframe["id"].max() + 1 if not settings.debug else 100
     image_ids = np.arange(0, max_id)
     np.random.seed(42)
     valid_ids = np.random.choice(
@@ -31,17 +32,18 @@ def make_train_valid_dfs():
 
 
 def build_loaders(dataframe, tokenizer, mode):
-    transforms = loader.get_transforms(mode=mode)
+    transforms = loader.get_transforms(settings.image_size, mode=mode)
     dataset = CLIPLoader(
         dataframe["image"].values,
         dataframe["caption"].values,
         tokenizer=tokenizer,
         transforms=transforms,
+        max_length = settings.max_length
     )
     dataloader = torch.utils.data.DataLoader(
         dataset,
-        batch_size=CFG.BATCH_SIZE,
-        num_workers=CFG.NUM_WORKERS,
+        batch_size=settings.batch_size,
+        num_workers=settings.num_workers,
         shuffle=True if mode == "train" else False,
     )
     return dataloader
@@ -50,7 +52,7 @@ def train_epoch(model, train_loader, optimizer, lr_scheduler, step):
     loss_meter = AvgMeter()
     tqdm_object = tqdm(train_loader, total=len(train_loader))
     for batch in tqdm_object:
-        batch = {k: v.to(CFG.DEVICE) for k, v in batch.items() if k != "caption"}
+        batch = {k: v.to(paths.DEVICE) for k, v in batch.items() if k != "caption"}
         loss = model(batch)
         optimizer.zero_grad()
         loss.backward()
@@ -69,7 +71,7 @@ def valid_epoch(model, valid_loader):
     loss_meter = AvgMeter()
     tqdm_object = tqdm(valid_loader, total=len(valid_loader))
     for batch in tqdm_object:
-        batch = {k: v.to(CFG.DEVICE) for k, v in batch.items() if k != "caption"}
+        batch = {k: v.to(paths.DEVICE) for k, v in batch.items() if k != "caption"}
         loss = model(batch)
 
         count = batch["image"].size(0)
@@ -87,27 +89,37 @@ def plot_graphs(history, metric):
 
 def main():
     train_df, valid_df = make_train_valid_dfs()
-    tokenizer = DistilBertTokenizer.from_pretrained(CFG.TEXT_TOKENIZER)
+    tokenizer = DistilBertTokenizer.from_pretrained(settings.text_tokenizer)
     train_loader = build_loaders(train_df, tokenizer, mode="train")
     valid_loader = build_loaders(valid_df, tokenizer, mode="valid")
 
-    model = Clip().to(CFG.DEVICE)
+    model = Clip(
+        settings.temperature,
+        settings.image_embedding,
+        settings.text_embedding,
+        settings.model_name,
+        settings.text_encoder_model,
+        settings.pretrained,
+        settings.trainable,
+        settings.projection_dim,
+        settings.dropout
+        ).to(paths.DEVICE)
     params = [
-        {"params": model.image_encoder.parameters(), "lr": CFG.IMAGE_ENCODER_LR},
-        {"params": model.text_encoder.parameters(), "lr": CFG.TEXT_ENCODER_LR},
+        {"params": model.image_encoder.parameters(), "lr": settings.image_encoder_lr},
+        {"params": model.text_encoder.parameters(), "lr": settings.text_encoder_lr},
         {"params": itertools.chain(
             model.image_projection.parameters(), model.text_projection.parameters()
-        ), "lr": CFG.HEAD_LR, "weight_decay": CFG.WEIGHT_DECAY}
+        ), "lr": settings.head_lr, "weight_decay": settings.weight_decay}
     ]
     optimizer = torch.optim.AdamW(params, weight_decay=0.)
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", patience=CFG.PATIENCE, factor=CFG.FACTOR
+        optimizer, mode="min", patience=settings.patience, factor=settings.factor
     )
     step = "epoch"
 
     best_loss = float('inf')
     history = {'loss': [], 'val_loss': [], 'acc': [], 'val_acc': []}
-    for epoch in range(CFG.EPOCHS):
+    for epoch in range(settings.epochs):
         logger.info("Epoch: %i", epoch +1)
         model.train()
         train_loss = train_epoch(model, train_loader, optimizer, lr_scheduler, step)
@@ -121,7 +133,7 @@ def main():
         if valid_loss.avg < best_loss:
             best_loss = valid_loss.avg
             logger.info("Saving model...")
-            torch.save(model.state_dict(), CFG.MODELS_PATH + "/clip_model.pt")
+            torch.save(model.state_dict(), paths.MODELS_PATH / "clip_model.pt")
             logger.info("Saved Clip Model!")
         
         lr_scheduler.step(valid_loss.avg)

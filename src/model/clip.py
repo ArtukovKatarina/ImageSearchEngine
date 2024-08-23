@@ -2,24 +2,25 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import timm
-from image_search_engine.src import config as CFG
+from src import paths
+from config import settings
 from transformers import DistilBertConfig, DistilBertModel
 
 class Clip(nn.Module):
     def __init__(
-        self,
-        temperature=CFG.TEMPERATURE,
-        image_embedding=CFG.IMAGE_EMBEDDING,
-        text_embedding=CFG.TEXT_EMBEDDING,
-        model_name=CFG.MODEL_NAME,
-        text_encoder_model=CFG.TEXT_ENCODER_MODEL,
-        pretrained=CFG.PRETRAINED,
-        trainable=CFG.TRAINABLE,
-        projection_dim=CFG.PROJECTION_DIM,
-        dropout=CFG.DROPOUT
+        self, 
+        temperature, 
+        image_embedding,
+        text_embedding,
+        model_name,
+        text_encoder_model,
+        pretrained,
+        trainable,
+        projection_dim,
+        dropout
     ):
         super().__init__()
-
+        
         # Image Encoder
         self.image_encoder = timm.create_model(
             model_name, pretrained=pretrained, num_classes=0, global_pool="avg"
