@@ -9,6 +9,13 @@ __pycache__/
 #Idea files
 .idea/
 
+#Data files
+/data/**/*.csv
+/data/**/*.jpg
+/data/**/*/*.jpg
+
+#Model files
+/models
 
 # Distribution / packaging
 .Python
@@ -131,3 +138,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Ignore dynaconf secret files
+.secrets.*
