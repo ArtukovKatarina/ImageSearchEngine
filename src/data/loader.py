@@ -6,7 +6,7 @@ from src import paths
 class CLIPLoader(torch.utils.data.Dataset):
     def __init__(self, image_filenames, captions, tokenizer, transforms, max_length):
         """
-        image_filenames and cpations must have the same length; so, if there are
+        image_filenames and captions must have the same length; so, if there are
         multiple captions for each image, the image_filenames must have repetitive
         file names
         """

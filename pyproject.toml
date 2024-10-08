@@ -19,6 +19,8 @@ types-tqdm = "^4.66.0.20240417"
 matplotlib = "^3.9.2"
 logger = "^1.4"
 dynaconf = "^3.2.6"
+pinecone = "^5.3.1"
+fastapi = "^0.115.0"
 
 
 [build-system]
