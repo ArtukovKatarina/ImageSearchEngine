@@ -24,3 +24,9 @@ text_tokenizer = "distilbert-base-uncased"
 pretrained = true
 trainable = true
 temperature = 1.0
+
+pinecone_index_name = "clip-image-text-search"
+pinecone_batch_size = 250
+pinecone_metric = 'cosine'
+pinecone_cloud = 'aws'
+pinecone_region = 'us-east-1'

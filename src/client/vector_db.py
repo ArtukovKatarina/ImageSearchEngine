@@ -1,7 +1,4 @@
 import torch
-import matplotlib.pyplot as plt
-import cv2
-import torch.nn.functional as F
 import logging
 from pinecone import Pinecone, ServerlessSpec
 from tqdm.autonotebook import tqdm
@@ -16,16 +13,16 @@ warnings.filterwarnings('ignore')
 logger = logging.getLogger(__name__)
 
 def init_pinecone(pinecone):
-    INDEX_NAME = "clip-image-text-search"
+    INDEX_NAME = settings.pinecone_index_name
 
     if INDEX_NAME in [index.name for index in pinecone.list_indexes()]:
         pinecone.delete_index(INDEX_NAME)
     pinecone.create_index(name=INDEX_NAME, 
         dimension=settings.projection_dim, 
-        metric='cosine',
-        spec=ServerlessSpec(cloud='aws', region='us-east-1'))
+        metric= settings.pinecone_metric,
+        spec=ServerlessSpec(cloud= settings.pinecone_cloud, region=settings.pinecone_region))
 
-    index = pinecone.Index(INDEX_NAME)
+    pinecone.Index(INDEX_NAME)
     logger.info("Created index with name: %s ", INDEX_NAME)
     
 
@@ -61,24 +58,22 @@ def get_image_embeddings(valid_df, model_path):
 def store_image_embeddings(pinecone, valid_df, image_embeddings, image_filenames):
     logger.info("Start storing embeddings to Pinecone.")
     logger.info("Image embeddings number: %f", len(image_embeddings))
-    index = pinecone.Index("clip-image-text-search")
-    BATCH_SIZE = 250
-    # Prepare data for Pinecone
+    index = pinecone.Index(settings.pinecone_index_name)
+    
     image_data = []
     for idx, image_embedding in enumerate(image_embeddings):
         image_data.append({
-            "id": str(image_filenames[idx]),  # unique ID for each image
-            "values": image_embedding.tolist(),  # convert tensor to list for storing
-            "metadata": {"filename": image_filenames[idx]}  # optional metadata
+            "id": str(image_filenames[idx]), 
+            "values": image_embedding.tolist(), 
+            "metadata": {"filename": image_filenames[idx]} 
         })
-        # When we have BATCH_SIZE items, upsert them
-        if len(image_data) == BATCH_SIZE:
+       
+        if len(image_data) == settings.pinecone_batch_size:
             index.upsert(vectors=image_data)
-            image_data = []  # Clear the list after upserting
+            image_data = [] 
     
     logger.info("Desribe index stats with batching:")
     logger.info(index.describe_index_stats())
-    # Upsert the embeddings into the Pinecone index
     if image_data:
         index.upsert(vectors=image_data)
     logger.info("Desribe index stats finally:")
@@ -86,7 +81,7 @@ def store_image_embeddings(pinecone, valid_df, image_embeddings, image_filenames
     
     
 if __name__ == "__main__":
-    pinecone = Pinecone(api_key="f6f8a0bb-375e-4a58-958c-c5469329ad9e")
+    pinecone = Pinecone(api_key=settings.api_key)
     init_pinecone(pinecone)
     _, valid_df = make_train_valid_dfs()
     model, image_embeddings = get_image_embeddings(valid_df, paths.MODELS_PATH / "clip_model.pt")
