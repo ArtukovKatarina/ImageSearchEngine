@@ -14,7 +14,6 @@ from src.utils import avg_meter
 from src.utils.avg_meter import AvgMeter
 from src.model.clip import Clip
 
-
 logger = logging.getLogger(__name__)
 
 def make_train_valid_dfs():
