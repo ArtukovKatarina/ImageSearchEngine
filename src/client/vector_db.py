@@ -1,5 +1,6 @@
 import torch
 import logging
+import pandas as pd
 from pinecone import Pinecone, ServerlessSpec
 from tqdm.autonotebook import tqdm
 from transformers import DistilBertTokenizer
@@ -54,31 +55,38 @@ def get_image_embeddings(valid_df, model_path):
     
     logger.info("Finish getting embeddings from CLIP.")
     return model, torch.cat(valid_image_embeddings)
-
+    
 def store_image_embeddings(pinecone, valid_df, image_embeddings, image_filenames):
     logger.info("Start storing embeddings to Pinecone.")
     logger.info("Image embeddings number: %f", len(image_embeddings))
+    logger.info("Image filenames number: %f", len(image_filenames))
+    
     index = pinecone.Index(settings.pinecone_index_name)
     
-    image_data = []
-    for idx, image_embedding in enumerate(image_embeddings):
-        image_data.append({
-            "id": str(image_filenames[idx]), 
-            "values": image_embedding.tolist(), 
-            "metadata": {"filename": image_filenames[idx]} 
-        })
-       
-        if len(image_data) == settings.pinecone_batch_size:
-            index.upsert(vectors=image_data)
-            image_data = [] 
+    batch_size = settings.pinecone_batch_size
+    num_embeddings = len(image_embeddings)
     
-    logger.info("Desribe index stats with batching:")
-    logger.info(index.describe_index_stats())
-    if image_data:
-        index.upsert(vectors=image_data)
-    logger.info("Desribe index stats finally:")
-    logger.info(index.describe_index_stats())
+    logger.info("Starting the upsert process in batches of size: %d", batch_size)
+    logger.info(f"Total number of embeddings: {len(image_embeddings)}")
     
+    for i in range(0, num_embeddings, batch_size):
+        batch_embeddings = image_embeddings[i:i + batch_size]
+        batch_filenames = image_filenames[i:i + batch_size]
+        
+        image_data = []
+        for idx, image_embedding in enumerate(batch_embeddings):
+            image_data.append({
+                "id": str(batch_filenames[idx]), 
+                "values": image_embedding.tolist(), 
+                "metadata": {"filename": batch_filenames[idx]} 
+            })
+            
+        df = pd.DataFrame(image_data)
+        logger.info(f"Upserting batch {i // batch_size + 1}/{num_embeddings // batch_size + 1}")
+        index.upsert_from_dataframe(df, batch_size = settings.pinecone_batch_size, show_progress=True)
+    
+    logger.info("Desribe index stats after upserts:")
+    logger.info(index.describe_index_stats())
     
 if __name__ == "__main__":
     pinecone = Pinecone(api_key=settings.api_key)

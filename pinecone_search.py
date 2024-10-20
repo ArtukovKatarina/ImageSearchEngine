@@ -44,6 +44,9 @@ model.eval()
 class SearchRequest(BaseModel):
     query: str
     n: int = 9
+    
+class ImageRequest(BaseModel):
+    image: str
 
 def encode_image_to_base64(image_path):
     with open(image_path, "rb") as image_file:
@@ -139,3 +142,44 @@ def search_vector_db_by_image(search_request: SearchRequest):
             logger.warning(f"Warning: Image at {image_path} could not be loaded.")
     
     return {"images": image_data_list}
+
+@app.post("/insert_image")
+def insert_image(image_request: ImageRequest):
+    logger.info("Start inserting image into Pinecone database")
+
+    try:
+        # Decode base64 string to image
+        decoded_image = decode_base64_to_image(image_request.image)
+        logger.info("Successfully decoded the image")
+    except Exception as e:
+        logger.error(f"Failed to decode image: {str(e)}")
+        return {"error": "Invalid image format or decoding failed."}
+
+
+    preprocessed_image = preprocess_image(decoded_image)
+
+    with torch.no_grad():
+        image_features = model.image_encoder(preprocessed_image)
+        image_embeddings = model.image_projection(image_features)
+        image_embeddings = F.normalize(image_embeddings, p=2, dim=-1)
+    logger.info("Generated image embeddings")
+
+    try:
+        index = pinecone.Index(settings.pinecone_index_name)
+        
+        # Prepare metadata for the image, assuming you want to store the filename or identifier
+        image_id = f"image_{int(torch.randint(0, 1000000, (1,)))}"
+        image_data = {
+            "id": image_id, 
+            "values": image_embeddings[0].tolist(),
+            "metadata": {"filename": image_id}
+        }
+        
+        index.upsert(vectors=[image_data])
+        logger.info(f"Successfully inserted image {image_id} into Pinecone")
+
+    except Exception as e:
+        logger.error(f"Failed to insert image into Pinecone: {str(e)}")
+        return {"error": "Failed to insert image into Pinecone database."}
+
+    return {"message": "Image successfully inserted", "image_id": image_id}
