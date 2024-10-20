@@ -8,6 +8,20 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.10"
 pandas = "^2.2.2"
+pathlib = "^1.0.1"
+torch = "^2.4.0"
+albumentations = "^1.4.13"
+opencv-python = "^4.10.0.84"
+timm = "^1.0.8"
+transformers = "^4.44.0"
+tqdm = "^4.66.5"
+types-tqdm = "^4.66.0.20240417"
+matplotlib = "^3.9.2"
+logger = "^1.4"
+dynaconf = "^3.2.6"
+pinecone = "^5.3.1"
+fastapi = "^0.115.0"
+uvicorn = "^0.31.0"
 
 
 [build-system]
