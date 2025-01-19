@@ -1,0 +1,34 @@
+.App {
+  text-align: center;
+  background-color: #1E1E2F;
+  min-height: 95vh;
+  flex-direction: column;
+  display: flex;
+  font-size: calc(10px + 2vmin);
+  align-items: center;
+  max-height: 100%;
+  gap: 5rem;
+  width: 100%;
+}
+.search-engine-name {
+  font-family: 'Nunito', sans-serif;
+  font-size: 80px;
+  color: #00BFFF;
+  margin-bottom: 0px;
+  margin-top: 90px;
+}
+
+.search-engine-description {
+  font-family: 'Nunito', sans-serif;
+  font-size: 22px;
+  color: #00BFFF;
+  margin-top: 0px;
+  margin-bottom: -20px;
+}
+
+.logo-icon{
+  margin-top: 40px;
+  width: 320px;
+  height: 320px;
+  margin-bottom: -150px;
+}
