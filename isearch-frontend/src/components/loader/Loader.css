@@ -1,0 +1,25 @@
+.loader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 50rem !important;
+    width: 20rem !important;
+}
+
+.loader-icon {
+    border: 8px solid rgba(255, 255, 255, 0.1); /* Light border that blends with the dark background */
+    border-top: 8px solid #00BFFF; /* Bright color (matching your logo) for the top to make it visible */
+    border-radius: 50%;
+    width: 80px !important;
+    height: 80px !important;
+    animation: spin 1s linear infinite; /* Continuous rotation */
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}

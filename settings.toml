@@ -30,3 +30,5 @@ pinecone_batch_size = 250
 pinecone_metric = 'cosine'
 pinecone_cloud = 'aws'
 pinecone_region = 'us-east-1'
+
+top_k = 10

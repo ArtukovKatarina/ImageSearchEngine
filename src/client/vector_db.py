@@ -91,6 +91,7 @@ def store_image_embeddings(pinecone, valid_df, image_embeddings, image_filenames
 if __name__ == "__main__":
     pinecone = Pinecone(api_key=settings.api_key)
     init_pinecone(pinecone)
-    _, valid_df = make_train_valid_dfs()
-    model, image_embeddings = get_image_embeddings(valid_df, paths.MODELS_PATH / "clip_model.pt")
-    store_image_embeddings(pinecone, valid_df, image_embeddings, valid_df['image'].values)
+    train_df, valid_df = make_train_valid_dfs()
+    combined_df = pd.concat([train_df, valid_df]).reset_index(drop=True)
+    model, image_embeddings = get_image_embeddings(combined_df, paths.MODELS_PATH / "clip_model.pt")
+    store_image_embeddings(pinecone, combined_df, image_embeddings, combined_df['image'].values)
